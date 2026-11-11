@@ -4,9 +4,13 @@
 //! coverage of *Roark's Formulas for Stress and Strain*. This crate encodes
 //! classical theory; it does not reproduce copyrighted book text or tables.
 //!
-//! Chapter 1 (Introduction) is covered by these crate docs. Remaining chapters
-//! map to the modules below. The first implemented engine is [`beams`]
-//! (straight-beam flexure via singularity functions).
+//! Chapter 1 (Introduction) is covered by these crate docs. Each implemented
+//! chapter is a top-level module:
+//!
+//! - [`beams`]: Chapter 8, beams; flexure of straight bars.
+//! - [`plane_area`]: Appendix A, properties of a plane area.
+//!
+//! Further chapters will be added as new modules.
 //!
 //! ## Sign and unit conventions (beams)
 //!
@@ -26,27 +30,8 @@
 //! Many textbook closed forms use **y positive downward**. Negate reference
 //! `y` and `θ` before comparing against this crate.
 
-pub mod analytical_methods;
 pub mod beams;
-pub mod bearing_shear;
-pub mod biomechanics;
-pub mod bodies_under_stress;
-pub mod columns;
-pub mod combined_stress;
-pub mod composites;
-pub mod curved_beams;
-pub mod dynamic_temperature;
-pub mod elastic_stability;
-pub mod experimental_methods;
-pub mod fasteners_joints;
-pub mod fatigue_fracture;
-pub mod flat_plates;
-pub mod numerical_methods;
 pub mod plane_area;
-pub mod shells;
-pub mod stress_concentration;
-pub mod stress_strain;
-pub mod torsion;
 
 pub use beams::{
     Beam, BeamError, BeamSolution, EndCondition, Kernel, Load, Peak, Reactions, Stiffness, bracket,
