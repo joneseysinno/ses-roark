@@ -4,6 +4,7 @@ use super::error::BeamError;
 use super::kernel::Kernel;
 use super::load::Load;
 use super::stiffness::Stiffness;
+use super::tip_moment_order::tip_moment_order;
 
 /// Reject non-physical geometry, rigidities, spring constants, and loads.
 pub(crate) fn validate(beam: &Beam) -> Result<(), BeamError> {
@@ -74,6 +75,30 @@ pub(crate) fn validate(beam: &Beam) -> Result<(), BeamError> {
         };
         if !ok {
             return fail(format!("load {load:?} does not lie on the span 0..{l}"));
+        }
+    }
+    if let Stiffness::Tapered {
+        ei_start,
+        ei_end,
+        exponent,
+    } = beam.stiffness
+        && (ei_start == 0.0) != (ei_end == 0.0)
+    {
+        let at_right = ei_end == 0.0;
+        let station = if at_right { l } else { 0.0 };
+        let support = if at_right { beam.right } else { beam.left };
+        let end = if at_right { "right" } else { "left" };
+        if !matches!(support, EndCondition::Free | EndCondition::Pinned) {
+            return fail(format!(
+                "zero stiffness at the {end} end requires a free or pinned support"
+            ));
+        }
+        if let Some((order, load)) = tip_moment_order(beam, station)
+            && exponent > f64::from(order)
+        {
+            return fail(format!(
+                "taper exponent {exponent} at the {end} end exceeds the moment order {order} of the {load}"
+            ));
         }
     }
     Ok(())

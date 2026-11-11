@@ -269,6 +269,40 @@ fn peak_responses_are_found() {
 }
 
 #[test]
+fn peak_stations_of_a_triangular_load_and_a_propped_cantilever() {
+    let rising = Beam::new(
+        L,
+        EI,
+        EndCondition::Pinned,
+        EndCondition::Pinned,
+        vec![Load::LinearLoad {
+            w_start: 0.0,
+            w_end: W,
+            start: 0.0,
+            end: L,
+        }],
+    )
+    .solve()
+    .unwrap();
+    let moment = rising.peak_moment();
+    assert_close(moment.x, L / 3.0_f64.sqrt(), 1e-6, 0.0);
+    assert_close(moment.value, W * L * L / (9.0 * 3.0_f64.sqrt()), 1e-6, 0.0);
+    assert_close(rising.peak_deflection().x / L, 0.5193, 0.0, 5.0e-5);
+    let propped = Beam::new(
+        L,
+        EI,
+        EndCondition::Pinned,
+        EndCondition::Fixed,
+        vec![Load::uniform(W, 0.0, L)],
+    )
+    .solve()
+    .unwrap();
+    let hogging = propped.peak_moment();
+    assert_close(hogging.x, L, 0.0, 1e-8);
+    assert_close(hogging.value, -W * L * L / 8.0, 1e-6, 0.0);
+}
+
+#[test]
 fn free_free_plain_beam_is_unstable() {
     let result = Beam::new(
         L,

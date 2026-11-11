@@ -1,17 +1,20 @@
+use super::peak::Peak;
+
 /// Signed value of largest magnitude of `f` over the segments between
-/// consecutive `points`: dense sampling of each smooth segment (including its
-/// left-hand and right-hand limits) refined by golden-section search on `|f|`.
-pub(crate) fn extremum(f: impl Fn(f64) -> f64, points: &[f64]) -> f64 {
+/// consecutive `points`, and the station where it occurs. Each smooth segment
+/// is sampled densely (including its left-hand and right-hand limits) and the
+/// sample of largest magnitude is refined by golden-section search on `|f|`.
+pub(crate) fn extremum(f: impl Fn(f64) -> f64, points: &[f64]) -> Peak {
     const SAMPLES: usize = 64;
     let golden = 0.5 * (5.0_f64.sqrt() - 1.0);
-    let pick = |best: f64, value: f64| {
-        if value.abs() > best.abs() {
-            value
+    let pick = |best: Peak, x: f64, value: f64| {
+        if value.abs() > best.value.abs() {
+            Peak { x, value }
         } else {
             best
         }
     };
-    let mut best = 0.0;
+    let mut best = Peak { x: 0.0, value: 0.0 };
     for pair in points.windows(2) {
         let (p, q) = (pair[0], pair[1]);
         if q <= p {
@@ -29,7 +32,7 @@ pub(crate) fn extremum(f: impl Fn(f64) -> f64, points: &[f64]) -> f64 {
                 arg
             }
         });
-        best = pick(best, values[peak]);
+        best = pick(best, xs[peak], values[peak]);
         let (mut lo, mut up) = (xs[peak.saturating_sub(1)], xs[(peak + 1).min(SAMPLES)]);
         let mut c = up - golden * (up - lo);
         let mut d = lo + golden * (up - lo);
@@ -49,10 +52,11 @@ pub(crate) fn extremum(f: impl Fn(f64) -> f64, points: &[f64]) -> f64 {
                 fd = f(d).abs();
             }
         }
-        best = pick(best, f(0.5 * (lo + up)));
+        let x = 0.5 * (lo + up);
+        best = pick(best, x, f(x));
     }
     if let Some(&last) = points.last() {
-        best = pick(best, f(last));
+        best = pick(best, last, f(last));
     }
     best
 }

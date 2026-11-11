@@ -49,5 +49,5 @@ pub mod stress_strain;
 pub mod torsion;
 
 pub use beams::{
-    Beam, BeamError, BeamSolution, EndCondition, Kernel, Load, Reactions, Stiffness, bracket,
+    Beam, BeamError, BeamSolution, EndCondition, Kernel, Load, Peak, Reactions, Stiffness, bracket,
 };

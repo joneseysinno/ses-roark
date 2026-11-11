@@ -34,9 +34,16 @@ pub struct Reactions {
 
 /// Solved beam: the left-end state plus everything needed to evaluate the
 /// state anywhere along the span.
+///
+/// `nodes` holds the state at each multiple-shooting station, before any
+/// action applied there. It is empty when the span was solved as one segment;
+/// `initial` is that left-end state either way, and `step` is the segment
+/// length (`beam.length` when there is only one).
 #[derive(Debug, Clone, PartialEq)]
 pub struct BeamSolution {
     pub(crate) beam: Beam,
     pub(crate) kernel: Resolved,
     pub(crate) initial: State,
+    pub(crate) nodes: Vec<State>,
+    pub(crate) step: f64,
 }

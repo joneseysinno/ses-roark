@@ -13,4 +13,5 @@ mod modifiers;
 mod plastic;
 mod section;
 mod table_8_1;
+mod table_8_1_oracle;
 mod variable_section;

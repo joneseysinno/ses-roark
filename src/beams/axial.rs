@@ -10,11 +10,13 @@
 
 mod amplification;
 mod critical_load;
+mod first_critical_below;
 mod restrained_ends;
 mod table_8_8_values;
 
 pub use amplification::amplification;
 pub use critical_load::critical_load;
+pub use first_critical_below::first_critical_below;
 pub use restrained_ends::restrained_ends;
 pub use table_8_8_values::table_8_8_values;
 

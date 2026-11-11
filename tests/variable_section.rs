@@ -3,7 +3,7 @@
 use roark::beams::variable_section::{
     slot_secondary_moments, slotted_stiffness, taper_coefficients,
 };
-use roark::beams::{Beam, EndCondition, Load, Stiffness};
+use roark::beams::{Beam, BeamError, EndCondition, Load, Stiffness};
 
 use crate::support::assert_close;
 
@@ -77,6 +77,151 @@ fn width_tapered_cantilever_has_constant_curvature() {
         0.0,
     );
     assert_close(solution.slope(0.0), w * L * L / EI, 1e-10, 0.0);
+}
+
+#[test]
+fn width_tapered_cantilever_loaded_at_the_right_tip() {
+    let w = 2.0;
+    let mut beam = Beam::new(
+        L,
+        EI,
+        EndCondition::Fixed,
+        EndCondition::Free,
+        vec![Load::PointForce {
+            magnitude: w,
+            at: L,
+        }],
+    );
+    beam.stiffness = Stiffness::Tapered {
+        ei_start: EI,
+        ei_end: 0.0,
+        exponent: 1.0,
+    };
+    let solution = beam.solve().unwrap();
+    assert_close(
+        solution.deflection(L),
+        -w * L.powi(3) / (2.0 * EI),
+        1e-10,
+        0.0,
+    );
+    assert_close(solution.slope(L), -w * L * L / EI, 1e-10, 0.0);
+}
+
+#[test]
+fn quadratic_taper_under_uniform_load_matches_the_free_end() {
+    let mut beam = Beam::new(
+        L,
+        EI,
+        EndCondition::Free,
+        EndCondition::Fixed,
+        vec![Load::uniform(1.0, 0.0, L)],
+    );
+    beam.stiffness = Stiffness::Tapered {
+        ei_start: 0.0,
+        ei_end: EI,
+        exponent: 2.0,
+    };
+    let solution = beam.solve().unwrap();
+    assert_close(
+        solution.deflection(0.0),
+        -L.powi(4) / (4.0 * EI),
+        1e-10,
+        0.0,
+    );
+}
+
+#[test]
+fn singular_tapers_are_rejected() {
+    let reject = |left, right, stiffness: Stiffness, loads| {
+        let mut beam = Beam::new(L, EI, left, right, loads);
+        beam.stiffness = stiffness;
+        assert!(
+            matches!(beam.solve(), Err(BeamError::InvalidInput(_))),
+            "expected InvalidInput for {beam:?}"
+        );
+    };
+    reject(
+        EndCondition::Free,
+        EndCondition::Fixed,
+        Stiffness::Tapered {
+            ei_start: 0.0,
+            ei_end: EI,
+            exponent: 3.0,
+        },
+        vec![Load::PointForce {
+            magnitude: 1.0,
+            at: 0.0,
+        }],
+    );
+    reject(
+        EndCondition::Free,
+        EndCondition::Fixed,
+        Stiffness::Tapered {
+            ei_start: 0.0,
+            ei_end: EI,
+            exponent: 3.0,
+        },
+        vec![Load::uniform(1.0, 0.0, L)],
+    );
+    reject(
+        EndCondition::Free,
+        EndCondition::Fixed,
+        Stiffness::Tapered {
+            ei_start: 0.0,
+            ei_end: EI,
+            exponent: 1.0,
+        },
+        vec![Load::PointMoment {
+            magnitude: 1.0,
+            at: 0.0,
+        }],
+    );
+    reject(
+        EndCondition::Fixed,
+        EndCondition::Free,
+        Stiffness::Tapered {
+            ei_start: 0.0,
+            ei_end: EI,
+            exponent: 1.0,
+        },
+        vec![Load::PointForce {
+            magnitude: 1.0,
+            at: L,
+        }],
+    );
+}
+
+#[test]
+fn pinned_zero_end_matches_a_vanishing_stiffness() {
+    let mut singular = Beam::new(
+        L,
+        EI,
+        EndCondition::Pinned,
+        EndCondition::Pinned,
+        vec![Load::PointForce {
+            magnitude: 1.0,
+            at: L / 2.0,
+        }],
+    );
+    singular.stiffness = Stiffness::Tapered {
+        ei_start: 0.0,
+        ei_end: EI,
+        exponent: 1.0,
+    };
+    let mut tiny = singular.clone();
+    tiny.stiffness = Stiffness::Tapered {
+        ei_start: 1e-9 * EI,
+        ei_end: EI,
+        exponent: 1.0,
+    };
+    let singular = singular.solve().unwrap();
+    let tiny = tiny.solve().unwrap();
+    assert_close(
+        singular.deflection(L / 2.0),
+        tiny.deflection(L / 2.0),
+        1e-6,
+        0.0,
+    );
 }
 
 #[test]

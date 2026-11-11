@@ -217,3 +217,40 @@ fn computed_tables_are_consistent() {
     assert_close(c[3] - c[0], 2.0 * bl.sin().powi(2), 1e-12, 0.0);
     assert_close(c[1] + c[2], 2.0 * bl.cosh() * bl.sinh(), 1e-12, 0.0);
 }
+
+#[test]
+fn long_free_beam_matches_its_mirror_under_an_end_load() {
+    let modulus = 100.0;
+    let beta = characteristic(EI, modulus);
+    let loaded = |length: f64, at: f64| {
+        let mut beam = Beam::new(
+            length,
+            EI,
+            EndCondition::Free,
+            EndCondition::Free,
+            vec![Load::PointForce { magnitude: 1.0, at }],
+        );
+        beam.kernel = Kernel::ElasticFoundation { modulus };
+        beam.solve().unwrap()
+    };
+    for beta_l in [300.0, 800.0] {
+        let length = beta_l / beta;
+        let offset = 1.0 / beta;
+        let near_left = loaded(length, offset);
+        let near_right = loaded(length, length - offset);
+        assert_close(
+            near_right.deflection(length - offset),
+            near_left.deflection(offset),
+            1e-9,
+            0.0,
+        );
+        assert_close(
+            near_right.moment(length - offset),
+            near_left.moment(offset),
+            1e-9,
+            0.0,
+        );
+        assert_close(near_left.deflection(offset), -0.001220, 0.0, 5e-7);
+        assert_close(near_left.moment(offset), 1.043416, 0.0, 5e-7);
+    }
+}
