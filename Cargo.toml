@@ -1,0 +1,18 @@
+[package]
+name = "roark"
+version = "0.1.0"
+edition = "2024"
+description = "Public-domain mechanics formulas inspired by Roark's Formulas for Stress and Strain"
+license = "MIT OR Apache-2.0"
+autotests = false
+
+[workspace]
+resolver = "3"
+members = ["."]
+
+[dependencies]
+nalgebra = "0.35"
+
+[[test]]
+name = "chapter8"
+path = "tests/chapter8.rs"
